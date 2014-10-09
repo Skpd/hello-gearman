@@ -1,0 +1,17 @@
+{
+    "name": "skpd/hello-gearman",
+    "autoload": {
+        "psr-0": {
+            "HelloGearman": "src"
+        }
+    },
+    "require": {
+        "cboden/ratchet": "~0.3"
+    },
+    "authors": [
+        {
+            "name": "Dmitry I Shabanov",
+            "email": "dm.skpd@gmail.com"
+        }
+    ]
+}

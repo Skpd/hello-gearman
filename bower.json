@@ -1,0 +1,20 @@
+{
+  "name": "hello-gearman",
+  "version": "0.0.0",
+  "homepage": "https://github.com/Skpd/hello-gearman",
+  "authors": [
+    "Dmitry I Shabanov <dm.skpd@gmail.com>"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.2.0"
+  }
+}

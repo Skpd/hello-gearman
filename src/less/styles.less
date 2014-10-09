@@ -1,0 +1,123 @@
+// Core variables and mixins
+@import "../../vendor/assets/bootstrap/less/variables.less";
+@import "../../vendor/assets/bootstrap/less/bootstrap.less";
+
+
+
+html, body {
+  height: 100%;
+}
+
+body {
+  text-align: center;
+  text-shadow: 1px 1px 1px darken(@body-bg, 10%);
+}
+
+.site-wrapper {
+  display: table;
+  width: 100%;
+  height: 100%; /* For at least Firefox */
+  min-height: 100%;
+  -webkit-box-shadow: inset 0 0 100px darken(@body-bg, 20%);
+          box-shadow: inset 0 0 100px darken(@body-bg, 20%);
+}
+
+.site-wrapper-inner {
+  display: table-cell;
+  vertical-align: top;
+}
+
+.cover-container {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.inner {
+  padding: 30px;
+}
+
+.masthead-brand {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.masthead-nav > li {
+  display: inline-block;
+
+  + li {
+    margin-left: 20px;
+  }
+
+  > a {
+    padding-right: 0;
+    padding-left: 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: @navbar-default-link-color;
+    border-bottom: 2px solid @navbar-default-link-color;
+  }
+
+  > a:hover, > a:focus {
+    background-color: transparent;
+    border-bottom-color: @navbar-default-link-hover-bg;
+  }
+}
+
+.masthead-nav > .active > a,
+.masthead-nav > .active > a:hover,
+.masthead-nav > .active > a:focus {
+  color: @navbar-default-link-active-color;
+  border-bottom-color: @navbar-default-link-active-bg;
+}
+
+.cover {
+  padding: 0 20px;
+
+  .btn-lg {
+    padding: 10px 20px;
+    font-weight: bold;
+  }
+}
+
+.mastfoot {
+  color: darken(@body-bg, 20%); /* IE8 proofing */
+  color: darken(@body-bg, 20%);
+  border-top: 1px solid darken(@body-bg, 10%);
+}
+
+@media (min-width: 768px) {
+  .masthead-brand {
+    float: left;
+  }
+  .masthead-nav {
+    float: right;
+  }
+
+  /* Pull out the header and footer */
+  .masthead {
+    position: fixed;
+    top: 0;
+  }
+  .mastfoot {
+    position: fixed;
+    bottom: 0;
+  }
+  /* Start the vertical centering */
+  .site-wrapper-inner {
+    vertical-align: middle;
+  }
+  /* Handle the widths */
+  .masthead,
+  .mastfoot,
+  .cover-container {
+    width: 100%; /* Must be percentage or pixels for horizontal alignment */
+  }
+}
+
+@media (min-width: 992px) {
+  .masthead,
+  .mastfoot,
+  .cover-container {
+    width: 700px;
+  }
+}

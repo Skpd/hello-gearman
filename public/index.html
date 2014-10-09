@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="assets/css/style.css"/>
+    <script src="assets/js/lib.js"></script>
+</head>
+<body>
+<div class="site-wrapper">
+<div class="site-wrapper-inner">
+<div class="cover-container">
+
+    <div class="masthead clearfix">
+        <div class="inner">
+            <h3 class="masthead-brand">Hello, Gearman</h3>
+            <ul class="nav masthead-nav">
+                <li class="active"><a href="../public/index.html">Home</a></li>
+                <li><a href="../composer.json">Page A</a></li>
+                <li><a href="../package.json">Page B</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="content" class="inner cover">
+        <h1 class="cover-heading">Hello, Gearman!</h1>
+    </div>
+
+    <div class="mastfoot">
+        <div class="inner">
+            <p>&copy; dev0 pointless research &trade; 2014<span class="pull-right">ping: <span id="ping">loading...</span></span></p>
+        </div>
+    </div>
+
+</div>
+</div>
+</div>
+
+<script type="text/javascript">
+    var conn = new WebSocket('ws://localhost:8080');
+
+    var Commands = {};
+
+    Commands.Ping = function () { };
+    Commands.Ping.prototype.toString = function() {
+        return JSON.stringify({
+            command: 'ping',
+            workload: (new Date).getTime()
+        });
+    };
+
+    Commands.Fetch = function(url) {
+        this.url = url;
+    };
+    Commands.Fetch.prototype.toString = function() {
+        return JSON.stringify({
+            command: 'fetch',
+            workload: this.url
+        });
+    };
+
+    conn.onopen = function(e) {
+        console.log('connected', e);
+
+        conn.send(new Commands.Ping());
+
+        setInterval(function() {
+            conn.send(new Commands.Ping());
+        }, 5000);
+    };
+
+    conn.onmessage = function(e) {
+        var response = JSON.parse(e.data);
+
+        if (response && response.hasOwnProperty('command') && response.hasOwnProperty('workload')) {
+            switch (response.command) {
+                case 'pong':
+                    $('#ping').text(
+                        (Math.abs(response.workload - (new Date).getTime() / 1000).toFixed(6) * 1000).toFixed(2) + ' ms'
+                    );
+                    break;
+
+                case 'fetch':
+                    $('#content').html(response.workload);
+                    break;
+
+                default:
+                    console.log('Unknown command ', response.command);
+                    break;
+            }
+        } else {
+            console.log('Incorrect response', e.data);
+        }
+    };
+
+    $('.nav a').click(function() {
+        conn.send(new Commands.Fetch($(this).attr('href')));
+        $(this).parents('.nav').find('li').removeClass('active');
+        $(this).parents('li').addClass('active');
+        return false;
+    });
+</script>
+</body>
+</html>
