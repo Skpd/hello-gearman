@@ -1,4 +1,6 @@
 .idea
 composer.lock
+composer.phar
 vendor/*
 public/assets/*
+node_modules
