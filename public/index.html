@@ -43,7 +43,7 @@
     Commands.Ping.prototype.toString = function() {
         return JSON.stringify({
             command: 'ping',
-            workload: (new Date).getTime()
+            workload: (new Date).getTime() / 1000
         });
     };
 

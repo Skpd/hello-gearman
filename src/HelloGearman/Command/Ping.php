@@ -8,8 +8,6 @@ use Ratchet\ConnectionInterface;
 
 class Ping implements CommandInterface
 {
-    private $count = 0;
-
     /**
      * @param ConnectionInterface $from
      * @param string $workload
@@ -18,7 +16,7 @@ class Ping implements CommandInterface
      */
     public function run(Server $server, $workload, ConnectionInterface $from = null)
     {
-        echo microtime(1) . " Sending pong #" . (++$this->count) . PHP_EOL;
+        echo date(DATE_ATOM) . ": Received ping from " . spl_object_hash($from) . ': ' . (abs(microtime(1) - $workload) * 1000) . ' ms' . PHP_EOL;
 
         $response = new Response('pong', microtime(1));
         $from->send($response);
