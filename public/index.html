@@ -11,7 +11,7 @@
 
     <div class="masthead clearfix">
         <div class="inner">
-            <h3 class="masthead-brand">Hello, Gearman</h3>
+            <h3 class="masthead-brand">Hello, Gearman <span id="spinner" class="spinner hidden"> </span></h3>
             <ul class="nav masthead-nav">
                 <li class="active"><a href="HelloGearman/Server.php">Home</a></li>
                 <li><a href="../composer.json">Page A</a></li>
@@ -80,6 +80,7 @@
 
                 case 'fetch':
                     $('#content').html(response.workload);
+                    $('#spinner').addClass('hidden');
                     break;
 
                 default:
@@ -92,7 +93,9 @@
     };
 
     $('.nav a').click(function() {
+        $('#spinner').removeClass('hidden');
         conn.send(new Commands.Fetch($(this).attr('href')));
+
         $(this).parents('.nav').find('li').removeClass('active');
         $(this).parents('li').addClass('active');
         return false;
