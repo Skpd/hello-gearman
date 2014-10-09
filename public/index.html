@@ -21,7 +21,9 @@
     </div>
 
     <div id="content" class="inner cover">
-        <h1 class="cover-heading">Hello, Gearman!</h1>
+        <p>
+            <button class="btn btn-primary" type="button" id="spawnJob">Click Me!</button>
+        </p>
     </div>
 
     <div class="mastfoot">
@@ -35,6 +37,7 @@
 </div>
 
 <script type="text/javascript">
+    var timers = {};
     var conn = new WebSocket('ws://localhost:8080');
 
     var Commands = {};
@@ -57,6 +60,32 @@
         });
     };
 
+    Commands.DoBackground = function(name, data, priority) {
+        this.name = name;
+        this.data = data;
+        this.priority = priority;
+    };
+    Commands.DoBackground.prototype.toString = function() {
+        return JSON.stringify({
+            command: 'do-background',
+            workload: {
+                'name': this.name,
+                'data': this.data,
+                priority: this.priority
+            }
+        });
+    };
+
+    Commands.JobStatus = function(handle) {
+        this.handle = handle;
+    };
+    Commands.JobStatus.prototype.toString = function() {
+        return JSON.stringify({
+            command: 'job-status',
+            workload: this.handle
+        });
+    };
+
     conn.onopen = function(e) {
         console.log('connected', e);
 
@@ -64,7 +93,7 @@
 
         setInterval(function() {
             conn.send(new Commands.Ping());
-        }, 5000);
+        }, 15000);
     };
 
     conn.onmessage = function(e) {
@@ -83,6 +112,52 @@
                     $('#spinner').addClass('hidden');
                     break;
 
+                case 'job-queued':
+                    var alert = $(
+                        '<div id="alert-' + response.workload.handle + '" class="alert alert-info col-md-3" role="alert">' +
+                            '<span class="text">' +
+                                '<strong>' + response.workload.handle + '</strong>' +
+                            '</span>' +
+                            '<div class="progress"><div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">0%</div></div>' +
+                        '</div>'
+                    );
+                    $('#content').append(alert);
+
+                    timers[response.workload.handle] = setInterval(function() {
+                        conn.send(new Commands.JobStatus(response.workload.handle));
+                    }, 100);
+                    break;
+
+                case 'job-status':
+                    var $alert = $(document.getElementById('alert-' + response.workload.handle));
+
+                    if (response.workload.known && !response.workload.running && !$alert.hasClass('alert-info')) {
+                        $alert.removeClass('alrt-info alert-success alert-warning').addClass('alert alert-info');
+                    }
+
+                    if (response.workload.known && response.workload.running) {
+                        $alert.find('.progress-bar')
+                                .css('width', response.workload.numerator + '%')
+                                .text(response.workload.numerator + '%')
+                                .attr('aria-valuenow', response.workload.numerator);
+
+                        if(!$alert.hasClass('alert-success')) {
+                            $alert.removeClass('alert-info alert-success alert-warning').addClass('alert alert-success');
+                        }
+                    }
+
+                    if (!response.workload.known && !response.workload.running && !$alert.hasClass('alert-danger')) {
+                        $alert.removeClass('alert-info alert-success alert-warning').addClass('alert alert-success');
+                        $alert.find('.progress-bar').css('width', '100%').text('100%').attr('aria-valuenow', 100);
+                        $alert.fadeOut('slow', function() { $(this).remove(); });
+                    }
+
+                    if (!response.workload.known) {
+                        clearInterval(timers[response.workload.handle]);
+                        delete timers[response.workload.handle];
+                    }
+                    break;
+
                 default:
                     console.log('Unknown command ', response.command);
                     break;
@@ -99,6 +174,10 @@
         $(this).parents('.nav').find('li').removeClass('active');
         $(this).parents('li').addClass('active');
         return false;
+    });
+
+    $('#spawnJob').click(function() {
+        conn.send(new Commands.DoBackground('sleep-status', 'test'));
     });
 </script>
 </body>
