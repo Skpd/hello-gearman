@@ -16,7 +16,7 @@ class Fetch implements CommandInterface
      */
     public function run(Server $server, $workload, ConnectionInterface $from = null)
     {
-        $response = new Response('fetch', file_get_contents($workload));
+        $response = new Response('fetch', '<pre><code>' . file_get_contents($workload) . '</code></pre>');
         $from->send($response);
     }
 
