@@ -8,7 +8,7 @@ $worker->addServer();
 $client = new GearmanClient();
 $client->addServer();
 
-$job = new \HelloGearman\Job\ProcessRequest([
+$job = new \HelloGearman\Job\ProcessRequest($client, [
     new \HelloGearman\Command\Ping(),
     new \HelloGearman\Command\Fetch(),
     new \HelloGearman\Command\DoBackground($client),

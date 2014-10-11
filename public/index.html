@@ -49,10 +49,21 @@
         };
         this.onmessage = function(e) {
             console.log('message', e);
+
+            var m = JSON.parse(e.data);
+            if (m && m.requestId && self.requests.hasOwnProperty(m.requestId)) {
+                self.requests[m.requestId].resolve(m.workload);
+                delete self.requests[m.requestId];
+            }
         };
         this.onclose = function(e) {
             console.log('close', e);
             self.openDefer.reject(self);
+
+            Object.keys(self.requests).forEach(function(key) {
+                self.requests[key].reject(self);
+                delete self.requests[key];
+            });
         };
         this.onerror = function(e) {
             console.log('error', e);
@@ -71,7 +82,7 @@
         this.ws.onclose = this.onclose;
         this.ws.onerror = this.onerror;
 
-        return this.openDefer.promise;
+        return this.openDefer.promise();
     };
     ConnectionManager.prototype.close = function(reason) {
         this.ws.close(reason);
@@ -86,7 +97,7 @@
 
         this.ws.send(command);
 
-        return defer.promise;
+        return defer.promise();
     };
 
     var Commands = {};
@@ -140,10 +151,10 @@
     };
 
     var manager = new ConnectionManager('ws://localhost:8080');
-    manager.open()().fail(function() {
+    manager.open().fail(function() {
         console.log('failed to connect');
     }).done(function() {
-        manager.send(new Commands.Ping());
+
     });
 
     $('.nav a').click(function() {
@@ -156,9 +167,9 @@
     });
 
     $('#spawnJob').click(function() {
-        conn.send(new Commands.DoBackground('sleep-status', 123, function() {
-            console.log(this, arguments);
-        }));
+        manager.send(new Commands.Ping()).done(function(data) {
+            console.log((Math.abs(data - (new Date).getTime() / 1000).toFixed(6) * 1000).toFixed(2) + ' ms');
+        });
     });
 </script>
 </body>

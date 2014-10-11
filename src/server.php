@@ -1,6 +1,5 @@
 <?php
 
-use HelloGearman\Job\ProcessRequest;
 use Ratchet\Http\HttpServer;
 use Ratchet\Server\IoServer;
 use HelloGearman\Server;
@@ -16,21 +15,15 @@ $client->addServer();
 
 $server = new Server($client);
 
+$worker = new GearmanWorker();
+$worker->addServer();
+$worker->addOptions(GEARMAN_WORKER_NON_BLOCKING);
+
+$job = new \HelloGearman\Job\ProcessResponse($server);
+$worker->addFunction($job->getName(), array($job, 'doJob'));
+
 $wsServer = IoServer::factory(new HttpServer(new WsServer($server)), 8080);
-
-$wsServer->loop->addPeriodicTimer(1, function () use ($server) {
-    $queue = msg_get_queue(ProcessRequest::QUEUE_ID);
-    $type = null;
-    /** @var \HelloGearman\Response\Response $message */
-    $message = null;
-
-    if (msg_receive($queue, ProcessRequest::MESSAGE_ID, $type, 1024*1024, $message, true, MSG_IPC_NOWAIT)) {
-        foreach ($server->getClients() as $client) {
-            if ($message->getClientId() === null || spl_object_hash($client) === $message->getClientId()) {
-                $client->send($message);
-            }
-        }
-    }
+$wsServer->loop->addPeriodicTimer(.01, function () use ($worker) {
+    $worker->work();
 });
-
 $wsServer->run();
