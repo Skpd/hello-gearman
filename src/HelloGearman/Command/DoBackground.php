@@ -3,9 +3,8 @@
 namespace HelloGearman\Command;
 
 use GearmanClient;
+use HelloGearman\Request\Request;
 use HelloGearman\Response\Response;
-use HelloGearman\Server;
-use Ratchet\ConnectionInterface;
 
 class DoBackground implements CommandInterface
 {
@@ -18,14 +17,12 @@ class DoBackground implements CommandInterface
     }
 
     /**
-     * @param ConnectionInterface $from
-     * @param string $workload
-     * @param Server $server
-     * @return mixed
+     * @param Request $request
+     * @return Response|void
      */
-    public function run(Server $server, $workload, ConnectionInterface $from = null)
+    public function run(Request $request)
     {
-        switch (isset($workload['priority']) ?: 0) {
+        switch (isset($request->getWorkload()['priority']) ?: 0) {
             case 1:
                 $method = 'doHighBackground';
                 break;
@@ -37,16 +34,21 @@ class DoBackground implements CommandInterface
                 break;
         }
 
-        $handle = $this->client->$method($workload['name'], serialize($workload['data']));
+        $handle = $this->client->$method(
+            $request->getWorkload()['name'],
+            serialize(isset($request->getWorkload()['data']) ? $request->getWorkload()['data'] : null)
+        );
 
         $response = new Response(
             'job-queued',
             [
-                'created' => microtime(1),
-                'handle'  => $handle,
-            ]
+                'created'   => microtime(1),
+                'handle'    => $handle
+            ],
+            $request->getClientId(),
+            $request->getId()
         );
-        $from->send($response);
+        return $response;
     }
 
     /**

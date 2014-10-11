@@ -2,7 +2,6 @@
 <html>
 <head>
     <link rel="stylesheet" href="assets/css/style.css"/>
-    <script src="assets/js/lib.js"></script>
 </head>
 <body>
 <div class="site-wrapper">
@@ -36,9 +35,59 @@
 </div>
 </div>
 
+<script src="assets/js/lib.js"></script>
 <script type="text/javascript">
-    var timers = {};
-    var conn = new WebSocket('ws://localhost:8080');
+    var ConnectionManager = function (url) {
+        var self = this;
+
+        this.url = url;
+        this.requests = {};
+
+        this.onopen = function(e) {
+            console.log('open', e);
+            self.openDefer.resolve(self);
+        };
+        this.onmessage = function(e) {
+            console.log('message', e);
+        };
+        this.onclose = function(e) {
+            console.log('close', e);
+            self.openDefer.reject(self);
+        };
+        this.onerror = function(e) {
+            console.log('error', e);
+            self.openDefer.reject(self);
+        };
+    };
+
+    ConnectionManager.prototype.open = function(url) {
+        url = url || this.url;
+
+        this.openDefer = new $.Deferred;
+
+        this.ws = new WebSocket(url);
+        this.ws.onopen = this.onopen;
+        this.ws.onmessage = this.onmessage;
+        this.ws.onclose = this.onclose;
+        this.ws.onerror = this.onerror;
+
+        return this.openDefer.promise;
+    };
+    ConnectionManager.prototype.close = function(reason) {
+        this.ws.close(reason);
+    };
+    ConnectionManager.prototype.send = function(command) {
+        var key = (new Date()).getTime();
+
+        var defer = new $.Deferred;
+
+        this.requests[key] = defer;
+        command.requestId = key;
+
+        this.ws.send(command);
+
+        return defer.promise;
+    };
 
     var Commands = {};
 
@@ -46,7 +95,8 @@
     Commands.Ping.prototype.toString = function() {
         return JSON.stringify({
             command: 'ping',
-            workload: (new Date).getTime() / 1000
+            workload: (new Date).getTime() / 1000,
+            requestId: this.requestId
         });
     };
 
@@ -56,7 +106,8 @@
     Commands.Fetch.prototype.toString = function() {
         return JSON.stringify({
             command: 'fetch',
-            workload: this.url
+            workload: this.url,
+            requestId: this.requestId
         });
     };
 
@@ -69,10 +120,11 @@
         return JSON.stringify({
             command: 'do-background',
             workload: {
-                'name': this.name,
-                'data': this.data,
+                name: this.name,
+                data: this.data,
                 priority: this.priority
-            }
+            },
+            requestId: this.requestId
         });
     };
 
@@ -82,90 +134,17 @@
     Commands.JobStatus.prototype.toString = function() {
         return JSON.stringify({
             command: 'job-status',
-            workload: this.handle
+            workload: this.handle,
+            requestId: this.requestId
         });
     };
 
-    conn.onopen = function(e) {
-        console.log('connected', e);
-
-        conn.send(new Commands.Ping());
-
-        setInterval(function() {
-            conn.send(new Commands.Ping());
-        }, 15000);
-    };
-
-    conn.onmessage = function(e) {
-        var response = JSON.parse(e.data);
-
-        if (response && response.hasOwnProperty('command') && response.hasOwnProperty('workload')) {
-            switch (response.command) {
-                case 'pong':
-                    $('#ping').text(
-                        (Math.abs(response.workload - (new Date).getTime() / 1000).toFixed(6) * 1000).toFixed(2) + ' ms'
-                    );
-                    break;
-
-                case 'fetch':
-                    $('#content').html(response.workload);
-                    $('#spinner').addClass('hidden');
-                    break;
-
-                case 'job-queued':
-                    var alert = $(
-                        '<div id="alert-' + response.workload.handle + '" class="alert alert-info col-md-3" role="alert">' +
-                            '<span class="text">' +
-                                '<strong>' + response.workload.handle + '</strong>' +
-                            '</span>' +
-                            '<div class="progress"><div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">0%</div></div>' +
-                        '</div>'
-                    );
-                    $('#content').append(alert);
-
-                    timers[response.workload.handle] = setInterval(function() {
-                        conn.send(new Commands.JobStatus(response.workload.handle));
-                    }, 100);
-                    break;
-
-                case 'job-status':
-                    var $alert = $(document.getElementById('alert-' + response.workload.handle));
-
-                    if (response.workload.known && !response.workload.running && !$alert.hasClass('alert-info')) {
-                        $alert.removeClass('alrt-info alert-success alert-warning').addClass('alert alert-info');
-                    }
-
-                    if (response.workload.known && response.workload.running) {
-                        $alert.find('.progress-bar')
-                                .css('width', response.workload.numerator + '%')
-                                .text(response.workload.numerator + '%')
-                                .attr('aria-valuenow', response.workload.numerator);
-
-                        if(!$alert.hasClass('alert-success')) {
-                            $alert.removeClass('alert-info alert-success alert-warning').addClass('alert alert-success');
-                        }
-                    }
-
-                    if (!response.workload.known && !response.workload.running && !$alert.hasClass('alert-danger')) {
-                        $alert.removeClass('alert-info alert-success alert-warning').addClass('alert alert-success');
-                        $alert.find('.progress-bar').css('width', '100%').text('100%').attr('aria-valuenow', 100);
-                        $alert.fadeOut('slow', function() { $(this).remove(); });
-                    }
-
-                    if (!response.workload.known) {
-                        clearInterval(timers[response.workload.handle]);
-                        delete timers[response.workload.handle];
-                    }
-                    break;
-
-                default:
-                    console.log('Unknown command ', response.command);
-                    break;
-            }
-        } else {
-            console.log('Incorrect response', e.data);
-        }
-    };
+    var manager = new ConnectionManager('ws://localhost:8080');
+    manager.open()().fail(function() {
+        console.log('failed to connect');
+    }).done(function() {
+        manager.send(new Commands.Ping());
+    });
 
     $('.nav a').click(function() {
         $('#spinner').removeClass('hidden');
@@ -177,7 +156,9 @@
     });
 
     $('#spawnJob').click(function() {
-        conn.send(new Commands.DoBackground('sleep-status', 'test'));
+        conn.send(new Commands.DoBackground('sleep-status', 123, function() {
+            console.log(this, arguments);
+        }));
     });
 </script>
 </body>

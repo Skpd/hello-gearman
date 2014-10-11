@@ -2,18 +2,16 @@
 
 namespace HelloGearman\Command;
 
-use HelloGearman\Server;
-use Ratchet\ConnectionInterface;
+use HelloGearman\Request\Request;
+use HelloGearman\Response\Response;
 
 interface CommandInterface
 {
     /**
-     * @param ConnectionInterface $from
-     * @param string $workload
-     * @param Server $server
-     * @return mixed
+     * @param Request $request
+     * @return Response
      */
-    public function run(Server $server, $workload, ConnectionInterface $from = null);
+    public function run(Request $request);
 
     /**
      * @return string

@@ -2,24 +2,20 @@
 
 namespace HelloGearman\Command;
 
+use HelloGearman\Request\Request;
 use HelloGearman\Response\Response;
-use HelloGearman\Server;
-use Ratchet\ConnectionInterface;
 
 class Ping implements CommandInterface
 {
     /**
-     * @param ConnectionInterface $from
-     * @param string $workload
-     * @param Server $server
-     * @return mixed
+     * @param Request $request
+     * @return Response|void
      */
-    public function run(Server $server, $workload, ConnectionInterface $from = null)
+    public function run(Request $request)
     {
-        echo date(DATE_ATOM) . ": Received ping from " . spl_object_hash($from) . ': ' . (abs(microtime(1) - $workload) * 1000) . ' ms' . PHP_EOL;
+        echo date(DATE_ATOM) . ": Received ping from " . $request->getClientId() . ': ' . (abs(microtime(1) - $request->getWorkload()) * 1000) . ' ms' . PHP_EOL;
 
-        $response = new Response('pong', microtime(1));
-        $from->send($response);
+        return new Response('pong', microtime(1), $request->getClientId(), $request->getId());
     }
 
     /**

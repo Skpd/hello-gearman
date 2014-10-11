@@ -3,6 +3,7 @@
 namespace HelloGearman\Command;
 
 use GearmanClient;
+use HelloGearman\Request\Request;
 use HelloGearman\Response\Response;
 use HelloGearman\Server;
 use Ratchet\ConnectionInterface;
@@ -18,26 +19,26 @@ class JobStatus implements CommandInterface
     }
 
     /**
-     * @param ConnectionInterface $from
-     * @param string $workload
-     * @param Server $server
-     * @return mixed
+     * @param Request $request
+     * @return Response|void
      */
-    public function run(Server $server, $workload, ConnectionInterface $from = null)
+    public function run(Request $request)
     {
-        $status = $this->client->jobStatus($workload);
+        $status = $this->client->jobStatus($request->getWorkload());
 
         $response = new Response(
             'job-status',
             [
-                'handle'      => $workload,
+                'handle'      => $request->getWorkload(),
                 'known'       => $status[0],
                 'running'     => $status[1],
                 'numerator'   => $status[2],
                 'denominator' => $status[3],
-            ]
+            ],
+            $request->getClientId(),
+            $request->getId()
         );
-        $from->send($response);
+        return $response;
     }
 
     /**

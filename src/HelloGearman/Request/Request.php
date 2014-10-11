@@ -8,6 +8,8 @@ class Request
     private $rawBody = '';
     private $command;
     private $workload;
+    private $id;
+    private $clientId;
 
     public function __construct($rawBody)
     {
@@ -42,6 +44,12 @@ class Request
         }
 
         $this->workload = $json['workload'];
+
+        if (!isset($json['requestId'])) {
+            throw new InvalidArgumentException("Request ID field not found.", InvalidArgumentException::MISSING_WORKLOAD);
+        }
+
+        $this->id = $json['requestId'];
     }
 
     /**
@@ -90,5 +98,37 @@ class Request
     public function getWorkload()
     {
         return $this->workload;
+    }
+
+    /**
+     * @param mixed $id
+     */
+    public function setId($id)
+    {
+        $this->id = $id;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * @param mixed $clientId
+     */
+    public function setClientId($clientId)
+    {
+        $this->clientId = $clientId;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getClientId()
+    {
+        return $this->clientId;
     }
 }

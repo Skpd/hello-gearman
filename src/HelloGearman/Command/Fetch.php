@@ -2,22 +2,23 @@
 
 namespace HelloGearman\Command;
 
+use HelloGearman\Request\Request;
 use HelloGearman\Response\Response;
-use HelloGearman\Server;
-use Ratchet\ConnectionInterface;
 
 class Fetch implements CommandInterface
 {
     /**
-     * @param ConnectionInterface $from
-     * @param string $workload
-     * @param Server $server
-     * @return mixed
+     * @param Request $request
+     * @return Response|void
      */
-    public function run(Server $server, $workload, ConnectionInterface $from = null)
+    public function run(Request $request)
     {
-        $response = new Response('fetch', '<pre><code>' . file_get_contents($workload) . '</code></pre>');
-        $from->send($response);
+        return new Response(
+            'fetch',
+            '<pre><code>' . file_get_contents($request->getWorkload()) . '</code></pre>',
+            $request->getClientId(),
+            $request->getId()
+        );
     }
 
     /**

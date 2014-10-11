@@ -13,16 +13,12 @@ class Server implements MessageComponentInterface
     /** @var \SplObjectStorage */
     private $clients;
 
-    /** @var CommandInterface[] */
-    private $commands;
-
-    function __construct(array $commands)
+    /** @var \GearmanClient */
+    private $client;
+    function __construct(\GearmanClient $client)
     {
+        $this->client = $client;
         $this->clients = new \SplObjectStorage();
-
-        foreach ($commands as $c) {
-            $this->commands[$c->__toString()] = $c;
-        }
     }
 
     /**
@@ -69,21 +65,17 @@ class Server implements MessageComponentInterface
     {
         try {
             $request = new Request($msg);
+            $request->setClientId(spl_object_hash($from));
         } catch (InvalidArgumentException $e) {
             echo $e->getMessage() . PHP_EOL;
             return;
         }
 
-        if (isset($this->commands[$request->getCommand()])) {
-            $command = $this->commands[$request->getCommand()];
-            $command->run($this, $request->getWorkload(), $from);
-        } else {
-            echo "Command {$request->getCommand()} not registered.\n";
-        }
+        $this->client->doBackground('process-request', serialize($request));
     }
 
     /**
-     * @return \SplObjectStorage
+     * @return ConnectionInterface[]
      */
     public function getClients()
     {
