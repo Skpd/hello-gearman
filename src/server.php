@@ -7,9 +7,6 @@ use Ratchet\WebSocket\WsServer;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-$output = new SplFileObject('/home/dmskpd/valid_emails_2.dat', 'a');
-$input  = new SplFileObject('/home/dmskpd/Downloads/google_5000000.txt', 'r');
-
 $client = new GearmanClient();
 $client->addServer();
 
