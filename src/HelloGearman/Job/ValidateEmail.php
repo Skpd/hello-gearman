@@ -30,11 +30,18 @@ class ValidateEmail implements JobInterface
         $client = new SyncClient();
         $client->connect($this->servers[mt_rand(0, count($this->servers) - 1)]);
 
+        $job->sendStatus(30, 100);
+
         $result = $client->checkEmail($email);
 
+        $job->sendStatus(70, 100);
+
         $client->disconnect();
+
         $job->sendStatus(100, 100);
 
-        $job->sendComplete(serialize([$email => $result]));
+        $job->sendComplete(json_encode([
+            'email' => $email, 'result' => $result
+        ]));
     }
 }

@@ -12,18 +12,13 @@
         <div class="inner">
             <h3 class="masthead-brand">Hello, Gearman <span id="spinner" class="spinner hidden"> </span></h3>
             <ul class="nav masthead-nav">
-                <li class="active"><a href="HelloGearman/Server.php">Home</a></li>
-                <li><a href="../composer.json">Page A</a></li>
-                <li><a href="../package.json">Page B</a></li>
+                <li><a id="home" href="home.html">Home</a></li>
+                <li><a href="check-email.html">Check Email</a></li>
             </ul>
         </div>
     </div>
 
-    <div id="content" class="inner cover">
-        <p>
-            <button class="btn btn-primary" type="button" id="spawnJob">Click Me!</button>
-        </p>
-    </div>
+    <div id="content" class="inner cover"></div>
 
     <div class="mastfoot">
         <div class="inner">
@@ -47,6 +42,7 @@
 
     manager.open().done(function() {
         doPing();
+        $('#home').click();
         setInterval(doPing, 10000);
     }).fail(function() {
         console.log('failed to connect');
@@ -67,17 +63,6 @@
             $('#spinner').addClass('hidden');
         });
         return false;
-    });
-
-    $('#spawnJob').click(function() {
-        manager.send(new Commands.RunTasks([
-                    {name: 'validate-email', workload: 'dm.skpd@gmail.com'},
-                    {name: 'validate-email', workload: 'skpd@ya.ru'}
-                ])).done(function(data) {
-            console.log('done');
-        }).progress(function(data, type) {
-            console.log(type, data.unique, data.numerator + '/' + data.denominator, data.data);
-        });
     });
 </script>
 </body>

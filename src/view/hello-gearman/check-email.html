@@ -1,0 +1,128 @@
+<div class="panel-group">
+    <div class="panel panel-default">
+        <div class="panel-heading text-left">Validate single email address.</div>
+        <div class="panel-body">
+            <form class="form-horizontal" action="">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label" for="email">Google Email address</label>
+                    <div class="col-sm-8">
+                        <input class="form-control" type="email"  id="email" placeholder="Enter email">
+                    </div>
+                    <p class="help-block">
+                        <span id="response"></span>
+                    </p>
+                </div>
+            </form>
+        </div>
+        <div class="panel-footer">
+            <button id="go" class="btn btn-primary" type="button">Go!</button>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading text-left">Validate multiple email addresses. One address per line.</div>
+        <div class="panel-body">
+            <form class="form-horizontal" action="">
+                <div class="form-group">
+                    <textarea class="form-control" name="emails" id="emails" cols="30" rows="10"></textarea>
+                    <p class="help-block">
+                        <span id="responses">
+
+                        </span>
+                    </p>
+                </div>
+            </form>
+        </div>
+        <div class="panel-footer">
+            <button id="go-multiple" class="btn btn-primary" type="button">Go!</button>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    $('#go').click(function() {
+        var $btn  = $(this);
+        var email = $('#email').val();
+        var $res  = $('#response');
+
+        $btn.addClass('disabled').prop('disabled', true);
+        $res.removeClass();
+
+        var command = new Commands.RunTasks([
+            {name: 'validate-email', workload: email}
+        ]);
+
+        manager.send(command).done(function(data) {
+            $btn.removeClass('disabled').prop('disabled', false);
+        }).progress(function(data, type) {
+            $res.removeClass();
+            switch (type) {
+                case 'task-created':
+                    $res.html('Task queued.');
+                    $res.addClass('text-info');
+                    break;
+                case 'task-data':
+                    $res.html('Started validating email "' + data.data + '".');
+                    $res.addClass('text-warning');
+                    break;
+                case 'task-status':
+                    $res.html(data.numerator + '% done.');
+                    $res.addClass('text-warning');
+                    break;
+                case 'task-complete':
+                    var result = JSON.parse(data.data);
+                    $res.html('Done. Email "' + result.email + '" is ' + (result.result ? 'valid' : 'invalid'));
+                    $res.addClass(result.result ? 'text-success' : 'text-danger');
+                    break;
+            }
+        });
+    });
+
+    $('#go-multiple').click(function() {
+        var $btn   = $(this);
+        var emails = $('#emails').val().split(/\s/g);
+        var tasks  = [];
+
+        $btn.addClass('disabled').prop('disabled', true);
+
+        $('#responses').empty();
+
+        for (var i = 0; i < emails.length; i++) {
+            tasks.push({name: 'validate-email', workload: emails[i]})
+        }
+
+        var command = new Commands.RunTasks(tasks);
+
+        manager.send(command).done(function(data) {
+            $btn.removeClass('disabled').prop('disabled', false);
+        }).progress(function(data, type) {
+            var id   = data.unique;
+            var $res = $('#response-' + id);
+
+            switch (type) {
+                case 'task-created':
+                    $('#responses').append('<div id="response-' + id + '"></div>')
+                    $res.html('Task queued.');
+                    $res.addClass('text-info');
+                    break;
+                case 'task-data':
+                    $res.removeClass();
+                    $res.html('Started validating email "' + data.data + '".');
+                    $res.addClass('text-warning');
+                    break;
+                case 'task-status':
+                    $res.removeClass();
+                    $res.html(data.numerator + '% done.');
+                    $res.addClass('text-warning');
+                    break;
+                case 'task-complete':
+                    $res.removeClass();
+                    var result = JSON.parse(data.data);
+                    $res.html('Done. Email "' + result.email + '" is ' + (result.result ? 'valid' : 'invalid'));
+                    $res.addClass(result.result ? 'text-success' : 'text-danger');
+                    break;
+            }
+        });
+    })
+</script>

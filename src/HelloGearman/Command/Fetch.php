@@ -13,9 +13,15 @@ class Fetch implements CommandInterface
      */
     public function run(Request $request)
     {
+        $file = 'view/hello-gearman/' . $request->getWorkload();
+
+        if (!file_exists($file)) {
+            $file = 'view/generic/not-found.html';
+        }
+
         return new Response(
             'fetch',
-            '<pre><code>' . file_get_contents($request->getWorkload()) . '</code></pre>',
+            file_get_contents($file),
             $request->getClientId(),
             $request->getId()
         );

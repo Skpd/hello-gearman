@@ -1,0 +1,16 @@
+<p>
+    <button class="btn btn-primary" type="button" id="spawnJob">Click Me!</button>
+</p>
+
+<script type="text/javascript">
+    $('#spawnJob').click(function() {
+        manager.send(new Commands.RunTasks([
+                    {name: 'validate-email', workload: 'mp41510@gmail.com'},
+                    {name: 'validate-email', workload: 'bukceline@gmail.com'}
+                ])).done(function(data) {
+            console.log('done');
+        }).progress(function(data, type) {
+            console.log(type, data.unique, data.numerator + '/' + data.denominator, data.data);
+        });
+    });
+</script>
