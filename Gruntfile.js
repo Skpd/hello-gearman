@@ -20,7 +20,7 @@ module.exports = function (grunt) {
             },
             js_files: {
                 src: [
-//                    './node_modules/requirejs/require.js',
+                    './src/js/*',
                     './vendor/assets/jquery/dist/jquery.js',
                     './vendor/assets/bootstrap/dist/js/bootstrap.js',
                 ],

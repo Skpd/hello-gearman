@@ -23,7 +23,7 @@ $job = new \HelloGearman\Job\ProcessResponse($server);
 $worker->addFunction($job->getName(), array($job, 'doJob'));
 
 $wsServer = IoServer::factory(new HttpServer(new WsServer($server)), 8080);
-$wsServer->loop->addPeriodicTimer(.01, function () use ($worker) {
+$wsServer->loop->addPeriodicTimer(.001, function () use ($worker) {
     $worker->work();
 });
 $wsServer->run();

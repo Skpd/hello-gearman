@@ -36,10 +36,17 @@ class ProcessRequest implements JobInterface
         if (isset($this->commands[$request->getCommand()])) {
             $response = $this->commands[$request->getCommand()]->run($request);
 
-            $this->client->doBackground('process-response', serialize($response));
+            if ($response) {
+                $this->sendResponse($response);
+            }
         } else {
             throw new \Exception("Unknown command {$request->getCommand()}");
         }
+    }
+
+    public function sendResponse($response)
+    {
+        $this->client->doBackground('process-response', serialize($response));
     }
 
 }

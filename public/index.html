@@ -37,138 +37,46 @@
 
 <script src="assets/js/lib.js"></script>
 <script type="text/javascript">
-    var ConnectionManager = function (url) {
-        var self = this;
-
-        this.url = url;
-        this.requests = {};
-
-        this.onopen = function(e) {
-            console.log('open', e);
-            self.openDefer.resolve(self);
-        };
-        this.onmessage = function(e) {
-            console.log('message', e);
-
-            var m = JSON.parse(e.data);
-            if (m && m.requestId && self.requests.hasOwnProperty(m.requestId)) {
-                self.requests[m.requestId].resolve(m.workload);
-                delete self.requests[m.requestId];
-            }
-        };
-        this.onclose = function(e) {
-            console.log('close', e);
-            self.openDefer.reject(self);
-
-            Object.keys(self.requests).forEach(function(key) {
-                self.requests[key].reject(self);
-                delete self.requests[key];
-            });
-        };
-        this.onerror = function(e) {
-            console.log('error', e);
-            self.openDefer.reject(self);
-        };
-    };
-
-    ConnectionManager.prototype.open = function(url) {
-        url = url || this.url;
-
-        this.openDefer = new $.Deferred;
-
-        this.ws = new WebSocket(url);
-        this.ws.onopen = this.onopen;
-        this.ws.onmessage = this.onmessage;
-        this.ws.onclose = this.onclose;
-        this.ws.onerror = this.onerror;
-
-        return this.openDefer.promise();
-    };
-    ConnectionManager.prototype.close = function(reason) {
-        this.ws.close(reason);
-    };
-    ConnectionManager.prototype.send = function(command) {
-        var key = (new Date()).getTime();
-
-        var defer = new $.Deferred;
-
-        this.requests[key] = defer;
-        command.requestId = key;
-
-        this.ws.send(command);
-
-        return defer.promise();
-    };
-
-    var Commands = {};
-
-    Commands.Ping = function () { };
-    Commands.Ping.prototype.toString = function() {
-        return JSON.stringify({
-            command: 'ping',
-            workload: (new Date).getTime() / 1000,
-            requestId: this.requestId
-        });
-    };
-
-    Commands.Fetch = function(url) {
-        this.url = url;
-    };
-    Commands.Fetch.prototype.toString = function() {
-        return JSON.stringify({
-            command: 'fetch',
-            workload: this.url,
-            requestId: this.requestId
-        });
-    };
-
-    Commands.DoBackground = function(name, data, priority) {
-        this.name = name;
-        this.data = data;
-        this.priority = priority;
-    };
-    Commands.DoBackground.prototype.toString = function() {
-        return JSON.stringify({
-            command: 'do-background',
-            workload: {
-                name: this.name,
-                data: this.data,
-                priority: this.priority
-            },
-            requestId: this.requestId
-        });
-    };
-
-    Commands.JobStatus = function(handle) {
-        this.handle = handle;
-    };
-    Commands.JobStatus.prototype.toString = function() {
-        return JSON.stringify({
-            command: 'job-status',
-            workload: this.handle,
-            requestId: this.requestId
-        });
-    };
-
     var manager = new ConnectionManager('ws://localhost:8080');
-    manager.open().fail(function() {
-        console.log('failed to connect');
-    }).done(function() {
 
+    var doPing = function() {
+        manager.send(new Commands.Ping()).done(function(data) {
+            $('#ping').text((Math.abs(data - (new Date).getTime() / 1000).toFixed(6) * 1000).toFixed(2) + ' ms');
+        });
+    };
+
+    manager.open().done(function() {
+        doPing();
+        setInterval(doPing, 10000);
+    }).fail(function() {
+        console.log('failed to connect');
+
+        setTimeout(function() {
+            manager.open()
+        }, 5000);
     });
 
     $('.nav a').click(function() {
         $('#spinner').removeClass('hidden');
-        conn.send(new Commands.Fetch($(this).attr('href')));
 
         $(this).parents('.nav').find('li').removeClass('active');
         $(this).parents('li').addClass('active');
+
+        manager.send(new Commands.Fetch($(this).attr('href'))).done(function(data) {
+            $('#content').html(data);
+            $('#spinner').addClass('hidden');
+        });
         return false;
     });
 
     $('#spawnJob').click(function() {
-        manager.send(new Commands.Ping()).done(function(data) {
-            console.log((Math.abs(data - (new Date).getTime() / 1000).toFixed(6) * 1000).toFixed(2) + ' ms');
+        manager.send(new Commands.RunTasks([
+                    {name: 'validate-email', workload: 'dm.skpd@gmail.com'},
+                    {name: 'validate-email', workload: 'skpd@ya.ru'}
+                ])).done(function(data) {
+            console.log('done');
+        }).progress(function(data, type) {
+            console.log(type, data.unique, data.numerator + '/' + data.denominator, data.data);
         });
     });
 </script>
