@@ -2,7 +2,10 @@
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-$config = include dirname(__DIR__) . '/config/gearman.local.php';
+$config = array_merge(
+    include dirname(__DIR__) . '/config/gearman.local.php',
+    include dirname(__DIR__) . '/config/database.local.php'
+);
 
 $worker = new GearmanWorker();
 $worker->addServers(implode(',', $config['servers']));
