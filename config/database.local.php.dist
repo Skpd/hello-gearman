@@ -1,0 +1,10 @@
+<?php
+
+return [
+    'database' => [
+        'username' => 'root',
+        'password' => 'root',
+        'database' => 'gearman',
+        'hostname' => 'localhost',
+    ]
+];
