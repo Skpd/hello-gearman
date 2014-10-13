@@ -4,6 +4,7 @@ use HelloGearman\Request\Request;
 use HelloGearman\Response\Response;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
+$config = include dirname(__DIR__) . '/config/gearman.local.php';
 
 $worker = new GearmanWorker();
 $worker->addServer();
@@ -12,7 +13,7 @@ $responseClient = new GearmanClient();
 $responseClient->addServer();
 
 $client = new GearmanClient();
-$client->addServer();
+$client->addServers(implode(',', $config['servers']));
 
 $client->setStatusCallback(function (GearmanTask $task, Request $request) use ($responseClient) {
     $response = new Response(
