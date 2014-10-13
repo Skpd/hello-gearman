@@ -19,4 +19,7 @@ $job = new \HelloGearman\Job\ValidateEmail([
 ]);
 $worker->addFunction($job->getName(), array($job, 'doJob'), null, 3);
 
+$job = new \HelloGearman\Job\Roswar\ParsePlayer();
+$worker->addFunction($job->getName(), array($job, 'doJob'));
+
 while ($worker->work());
