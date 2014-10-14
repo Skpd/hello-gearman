@@ -25,4 +25,7 @@ $worker->addFunction($job->getName(), array($job, 'doJob'), null, 3);
 $job = new \HelloGearman\Job\Roswar\ParsePlayer($config['database']);
 $worker->addFunction($job->getName(), array($job, 'doJob'));
 
+$job = new \HelloGearman\Job\Roswar\CheckWallet($config['database']);
+$worker->addFunction($job->getName(), array($job, 'doJob'));
+
 while ($worker->work());
