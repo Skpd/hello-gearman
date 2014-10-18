@@ -33,46 +33,84 @@ class CheckWallet implements JobInterface
 
     public function doJob(GearmanJob $job)
     {
-        $id = $job->workload();
+        $data  = json_decode($job->workload(), true);
+        $id    = $data['id'];
+        $proxy = $data['proxy'];
 
         $login = $this->pdo->query('SELECT nickname FROM roswar_players WHERE id = ' . $id);
 
         if ($login->rowCount() < 1) {
-            $job->sendFail();
+            $job->sendComplete(json_encode(['id' => $id, 'status' => 'fail']));
             return;
         }
+
+        $cookieFile = "/tmp/roswar_cookies/$id.cook";
 
         $ch = curl_init('http://www.roswar.ru/login/');
 
         curl_setopt_array($ch, [
+            CURLOPT_AUTOREFERER    => true,
+            CURLOPT_HTTPHEADER     => ["Proxy-Connection:"],
+            CURLOPT_SSL_VERIFYPEER => 0,
+            CURLOPT_USERAGENT      => "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1",
             CURLOPT_COOKIESESSION  => true,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => http_build_query(['action' => 'login', 'email' => $login->fetchColumn(0)]),
-            CURLOPT_COOKIEJAR      => 'php://memory'
+            CURLOPT_COOKIEJAR      => 'php://memory',
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_COOKIEJAR      => $cookieFile,
+            CURLOPT_COOKIEFILE     => $cookieFile,
         ]);
 
-        curl_exec($ch);
+        if (!file_exists($cookieFile)) {
+            echo "Dive in...\n";
+            curl_setopt_array($ch, [
+                CURLOPT_URL        => 'http://www.roswar.ru/login/',
+                CURLOPT_POST       => true,
+                CURLOPT_POSTFIELDS => http_build_query(['action' => 'login', 'email' => $login->fetchColumn(0)]),
+            ]);
+        } else {
+            curl_setopt_array($ch, [
+                CURLOPT_URL        => 'http://www.roswar.ru/player/',
+                CURLOPT_POST       => false,
+            ]);
+        }
 
+        if (!empty($proxy)) {
+            curl_setopt($ch, CURLOPT_PROXY, $proxy);
+        }
+
+        $content = curl_exec($ch);
         $info = curl_getinfo($ch);
 
-        if ($info['redirect_url'] === 'http://www.roswar.ru/player/#login') {
-            curl_setopt($ch, CURLOPT_URL, 'http://www.roswar.ru/player/');
-            curl_setopt($ch, CURLOPT_POST, false);
+        echo date(DATE_ATOM) . ": ($proxy) - " . $info['total_time'] . PHP_EOL;
 
-            $content = curl_exec($ch);
-
+        if (preg_match('/stats-accordion/i', $content)) {
             if (!empty($content) && preg_match('/Монет:\s(\d+)/i', $content, $m)) {
                 $money = intval($m[1]);
                 $this->stmt->execute([$money, $id]);
-                $job->sendComplete(json_encode(['id' => $id, 'money' => $money]));
+                $job->sendComplete(json_encode(['id' => $id, 'status' => 'ok', 'money' => $money]));
+                return;
             } else {
-                $job->sendFail();
+                $job->sendComplete(json_encode(['id' => $id, 'status' => 'fail-money-parse']));
                 return;
             }
         } else {
-            $job->sendFail();
-            return;
+            curl_setopt($ch, CURLOPT_POST, false);
+            $content = curl_exec($ch);
+            curl_setopt($ch, CURLOPT_POST, true);
+
+            if (preg_match('/вам нужно немного подождать/', $content)) {
+                $job->sendComplete(json_encode(['id' => $id, 'status' => 'proxy-busy', 'proxy' => $proxy]));
+                return;
+            } else if (preg_match('/Неверное имя или этот персонаж уже защищен паролем/i', $content)) {
+                $this->stmt->execute([null, $id]);
+                $job->sendComplete(json_encode(['id' => $id, 'status' => 'fail-registered']));
+                return;
+            } else {
+                $job->sendComplete(json_encode(['id' => $id, 'status' => 'fail-other']));
+                return;
+            }
         }
     }
 }

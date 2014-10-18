@@ -14,7 +14,8 @@
     ],
     "require": {
         "cboden/ratchet": "~0.3",
-        "skpd/email_tester": "dev-master"
+        "skpd/email_tester": "dev-master",
+        "jyggen/curl" : "dev-master"
     },
     "authors": [
         {
